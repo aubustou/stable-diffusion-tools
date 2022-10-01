@@ -1,4 +1,5 @@
 import inspect
+import logging
 import math
 import re
 import warnings
@@ -15,15 +16,18 @@ from diffusers import (
     DDIMScheduler,
     DiffusionPipeline,
     PNDMScheduler,
+    StableDiffusionPipeline,
     UNet2DConditionModel,
 )
-from diffusers import StableDiffusionPipeline
 from diffusers.pipelines.stable_diffusion import StableDiffusionSafetyChecker
 from IPython.display import display
 from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 from torch import autocast
 from tqdm.auto import tqdm
 from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
+
+logger = logging.getLogger("stable_diffusion.tools")
 
 
 class StableDiffusionImg2ImgPipeline(DiffusionPipeline):
@@ -333,6 +337,41 @@ def get_base_image(
     return preprocess(init_img)
 
 
+def save_images(
+    images: list[Image.Image],
+    prompts: list[str],
+    image_root_folder: Path,
+    seeds: list[int],
+    additional_metadata: Optional[dict[str, str]] = None,
+):
+    for index, image in enumerate(images):
+        logger.info(f"Saving image {index + 1} of {len(images)}")
+
+        prompt = prompts[index]
+        str_seed = str(seeds[index])
+
+        image_folder = image_root_folder / truncate_name(prompt)
+        image_folder.mkdir(parents=True, exist_ok=True)
+
+        image_path = image_folder / (str_seed + ".png")
+        while image_path.exists():
+            if match := IMAGE_NAME_PATTERN.match(image_path.stem):
+                name, number = match.groups()
+                number = int(number) + 1
+            else:
+                name = str_seed
+                number = 1
+            image_path = image_path.with_stem(f"{name}_{number}")
+
+        metadata = PngInfo()
+        metadata.add_text("compviz_seed", str_seed)
+        metadata.add_text("compviz_prompt", prompt)
+        for key, value in (additional_metadata or {}).items():
+            metadata.add_text(key, value)
+
+        image.save(str(image_path), pnginfo=metadata)
+
+
 def get_images(
     prompts: Union[str, list[str]],
     pipe,
@@ -350,6 +389,7 @@ def get_images(
     grid_rows: Optional[int] = None,
     grid_columns: Optional[int] = 3,
     do_not_show: bool = False,
+    additional_metadata: Optional[dict[str, str]] = None,
 ):
 
     kwargs = {}
@@ -400,7 +440,7 @@ def get_images(
                         generator=generator,
                         latents=latents,
                         strength=strength,
-                        **kwargs
+                        **kwargs,
                     )["sample"]
                 )
         else:
@@ -415,25 +455,11 @@ def get_images(
                         generator=generator,
                         latents=sliced_latents,
                         strength=strength,
-                        **kwargs
+                        **kwargs,
                     )["sample"]
                 )
 
-    for index, image in enumerate(images):
-        image_folder = image_root_folder / truncate_name(prompts[index])
-        image_folder.mkdir(parents=True, exist_ok=True)
-
-        image_path = image_folder / (str(seeds[index]) + ".png")
-        retries = 20
-        while image_path.exists():
-            if match := IMAGE_NAME_PATTERN.match(image_path.stem):
-                name, number = match.groups()
-                number = int(number) + 1
-            else:
-                name = seeds[index]
-                number = 1
-            image_path = image_path.with_stem(f"{name}_{number}")
-        image.save(str(image_path))
+    save_images(images, prompts, image_root_folder, seeds, additional_metadata)
 
     if do_not_show:
         return
