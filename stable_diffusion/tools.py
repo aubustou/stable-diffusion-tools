@@ -2,7 +2,6 @@ import inspect
 import logging
 import math
 import re
-import warnings
 from io import BytesIO
 from pathlib import Path
 from pprint import pprint
