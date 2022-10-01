@@ -1,0 +1,25 @@
+[project]
+name = "stable-diffusion-tools"
+version = "0.1"
+description = "Tools for stable diffusion"
+dependencies = [
+        "pytorch",
+        "tqdm",
+        "diffusers",
+        "transformers",
+        "ftfy",
+        "scipy",
+        "pillow",
+        "numpy",
+        "ipython",
+        "requests",
+]
+
+[tool.setuptools]
+packages = ["stable_diffusion"]
+
+[tool.pycln]
+all = true
+
+[tool.isort]
+profile = 'black'
