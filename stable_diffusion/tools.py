@@ -392,7 +392,7 @@ def get_images(
 ):
 
     kwargs = {}
-    if getattr(pipe, "img2img", True):
+    if getattr(pipe, "img2img", False):
         kwargs = {"init_image": get_base_image(img_url, img_path)}
 
     if isinstance(prompts, str):
