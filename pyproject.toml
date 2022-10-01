@@ -3,7 +3,7 @@ name = "stable-diffusion-tools"
 version = "0.1"
 description = "Tools for stable diffusion"
 dependencies = [
-        "pytorch",
+        "torch",
         "tqdm",
         "diffusers",
         "transformers",
