@@ -4,7 +4,6 @@ import math
 import re
 from io import BytesIO
 from pathlib import Path
-from pprint import pprint
 from typing import Any, List, Optional, Union
 
 import numpy as np
@@ -401,7 +400,7 @@ def get_images(
     if len(prompts) == 1 and num_images > 1:
         prompts = prompts * num_images
 
-    print(len(prompts))
+    logger.debug(len(prompts))
 
     if grid_columns is None:
         if grid_rows is not None:
@@ -425,7 +424,7 @@ def get_images(
     else:
         latents, seeds = get_latents(pipe=pipe, num_images=num_latents, device=device)
         generator = None
-    print(seeds)
+    logger.debug(seeds)
 
     images = []
     with autocast(device):
@@ -446,7 +445,7 @@ def get_images(
             for sliced_prompts, sliced_latents in return_lists(
                 simultaneous_prompts, prompts, latents
             ):
-                pprint(sliced_prompts)
+                logger.debug(sliced_prompts)
                 images.extend(
                     pipe(
                         sliced_prompts,
